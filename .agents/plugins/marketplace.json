@@ -1,0 +1,20 @@
+{
+  "name": "backslash-ux",
+  "interface": {
+    "displayName": "Backslash UX"
+  },
+  "plugins": [
+    {
+      "name": "codex-harness-engineering",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codex-harness-engineering"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

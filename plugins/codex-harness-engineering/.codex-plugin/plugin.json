@@ -1,0 +1,36 @@
+{
+  "name": "codex-harness-engineering",
+  "version": "1.0.0",
+  "description": "Align and maintain agent-ready software repositories with portable, evidence-based contracts.",
+  "author": {
+    "name": "Gabriel Reynold",
+    "url": "https://github.com/backslash-ux"
+  },
+  "homepage": "https://github.com/backslash-ux/codex-harness-engineering",
+  "repository": "https://github.com/backslash-ux/codex-harness-engineering",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "agent-skills",
+    "harness-engineering",
+    "repository-alignment"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codex Harness Engineering",
+    "shortDescription": "Align and maintain agent-ready repositories",
+    "longDescription": "Assess, initialize, improve, and maintain portable repository contracts for reliable Codex workflows.",
+    "developerName": "Gabriel Reynold",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/backslash-ux/codex-harness-engineering",
+    "defaultPrompt": [
+      "Align this repository and recommend the smallest sustainable harness improvement.",
+      "Initialize the smallest suitable agent-ready repository contract.",
+      "Audit this repository's agent readiness without changing it."
+    ]
+  }
+}

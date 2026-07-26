@@ -8,7 +8,10 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / "scripts"
+SKILL = (
+    ROOT / "plugins" / "codex-harness-engineering" / "skills" / "harness-engineering"
+)
+SCRIPTS = SKILL / "scripts"
 
 
 def run_script(
