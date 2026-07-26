@@ -1,0 +1,23 @@
+<!-- harness-engineering:global-contract:start -->
+## Repository alignment protocol
+
+For software-repository work, use `$harness-engineering` at project lifecycle
+boundaries:
+
+- initialize the smallest repository-local contract when creating a new project;
+- run read-only `align` on first entry, when root guidance is missing, or after a
+  material change to project shape, authorities, tooling, architecture, release
+  flow, or trust boundaries;
+- read the root and nearest applicable `AGENTS.md` before ordinary work in an
+  aligned repository, without repeating a full audit;
+- treat incomplete alignment as advisory, continue the requested task, and report
+  at most one material harness improvement;
+- follow external trackers, documents, spreadsheets, and providers only when the
+  repository or user explicitly links or names them;
+- keep model routing and delegation in user configuration, and never install
+  project hooks, automations, custom agents, or external integrations implicitly.
+
+Repository-local versioned artifacts remain authoritative for implementation.
+Normal ambiguity, security, release, provider, destructive-action, and human
+approval gates still apply independently of alignment status.
+<!-- harness-engineering:global-contract:end -->

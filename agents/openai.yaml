@@ -1,0 +1,4 @@
+interface:
+  display_name: "Harness Engineering"
+  short_description: "Align and maintain agent-ready repositories"
+  default_prompt: "Use $harness-engineering to align this repository and recommend the smallest sustainable next step."

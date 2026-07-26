@@ -1,0 +1,24 @@
+# Quality and Review
+
+Use the narrowest check capable of disproving a change. Replace the discovery
+notes below when canonical commands are added to the repository.
+
+{{CHECK_ROUTER}}
+
+## Review routing
+
+- Self-review every diff for scope, correctness, regression risk, and accidental
+  edits.
+- Add one independent review for runtime, data, security, authentication,
+  migration, or release risk.
+- Record evidence and unresolved risk in the pull request or handoff.
+
+## Evidence boundaries
+
+Local, browser, Preview, Production, and provider evidence are separate.
+Generated reports and screenshots do not prove a live environment.
+
+## Release and provider gates
+
+Human approval is required before merge and before any Production or external
+provider mutation.

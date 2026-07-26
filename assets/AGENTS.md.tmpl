@@ -1,0 +1,61 @@
+# {{PROJECT_NAME}} Agent Map
+
+## Scope and source of truth
+
+Work only in this repository and the named checkout and environment. The live
+code and the linked repository documents below are authoritative. Preserve
+existing product and architecture decisions unless the task explicitly changes
+them.
+
+## Project shape
+
+- Primary profile: {{PROJECT_PROFILE}}
+- Capability overlays: {{CAPABILITY_PROFILES}}
+
+## Authority map
+
+{{AUTHORITY_ROWS}}
+
+Implementation, delivery, environment, and provider authorities are independent.
+Do not use one as proof of another. Follow external sources only when explicitly
+linked or named; mark inaccessible sources `Unverified`.
+
+## Repository map
+
+{{CONTEXT_LINKS}}
+
+## Canonical commands
+
+{{CANONICAL_COMMANDS}}
+
+## Working contract
+
+- State the goal, constraints, relevant context, and “done when” before editing.
+- Read the smallest live source and classify the change risk.
+- Use Plan mode for ambiguous, cross-system, migration, trust-boundary, or
+  release work.
+- Prefer the simplest reversible implementation and existing project patterns.
+- Run the closest focused check, then self-review every change.
+- Request one bounded independent review for runtime, data, security,
+  authentication, migration, or release risk.
+- Prepare evidence and remaining risks, then stop for human merge approval.
+- Treat incomplete harness alignment as advisory and report at most one material
+  improvement without displacing the requested task.
+
+## Evidence boundaries
+
+Label results as implemented, locally verified, browser verified, Preview
+verified, Production verified, provider verified, or unverified. Never infer
+deployment or provider state from local checks or stored artifacts.
+
+## Human gates
+
+Obtain explicit approval before merge, Production or provider mutation, secrets
+or privilege changes, destructive actions, material cost, or external
+communication.
+
+## Done condition
+
+The requested scope is complete, the closest sufficient validation has passed,
+the diff has been self-reviewed, evidence is accurately labeled, and remaining
+risk or unverified state is reported.

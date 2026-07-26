@@ -1,0 +1,19 @@
+# Execution Plans
+
+Use a durable execution plan for multi-service work, migrations, trust-boundary
+changes, provider integrations, production rollouts, or work likely to span
+multiple sessions.
+
+Each active plan must contain:
+
+- goal, scope, constraints, and done condition;
+- current-system evidence and relevant paths;
+- ordered implementation steps with progress;
+- material decisions and rejected alternatives;
+- validation evidence by environment;
+- recovery or rollback checkpoints;
+- remaining risks and the next resumable action.
+
+Keep small changes in the task plan. Move completed plans to the repository's
+existing archive convention or mark them complete without leaving them presented
+as active.
