@@ -63,6 +63,20 @@ class SkillEvaluationTests(unittest.TestCase):
         ):
             evaluation.preflight(root, self.skill, manifest)
 
+    def test_preflight_resolves_current_cli_skill_root_aliases(self):
+        root = self.base / "fixture"
+        evaluation.fixture(root, self.skill, "align")
+        text = f"- `r7` = `{self.skill.parent}`\n- harness-engineering: fixture (file: r7/harness-engineering/SKILL.md)"
+        manifest = {"model": "fixture", "effort": "fixture", "disabled_skills": []}
+        with patch.object(
+            evaluation,
+            "command",
+            return_value=SimpleNamespace(stdout=json.dumps([text])),
+        ):
+            self.assertEqual(
+                evaluation.preflight(root, self.skill, manifest)["harness_entries"], 1
+            )
+
     def test_grader_rejects_edits_in_readonly_task(self):
         root = self.base / "fixture"
         evaluation.fixture(root, self.skill, "align")
@@ -78,6 +92,17 @@ class SkillEvaluationTests(unittest.TestCase):
             0,
         )
         self.assertFalse(result["checks"]["changes_in_scope"])
+
+    def test_mcp_disable_overrides_do_not_create_quoted_server_names(self):
+        values = evaluation.overrides(
+            {
+                "effort": "fixture",
+                "disabled_skills": [],
+                "disabled_mcp": ["example-server"],
+            }
+        )
+        self.assertIn("mcp_servers.example-server.enabled=false", values)
+        self.assertNotIn('mcp_servers."example-server".enabled=false', values)
 
     def test_misleading_ci_requires_correct_evidence(self):
         root = self.base / "fixture"

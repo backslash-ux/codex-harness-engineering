@@ -7,6 +7,8 @@ are excluded from the distributed skill. No model routing policy is prescribed.
 Use `python3 tools/evaluate_skill.py --help`. Supply an output directory outside
 the repository, an explicit model/effort, baseline and candidate refs, and every
 installed harness SKILL.md path that must be disabled for the invocation.
+Use `--codex-bin` to select an already available compatible CLI without changing
+the global installation. Preflight supports absolute and aliased skill paths.
 `--prepare-only` creates the manifest and immutable source copies without agent
 trials. The runner resumes its saved manifest and results rather than silently
 re-running trials. `--retry CASE:VARIANT` uses one of six extra attempts and
@@ -18,6 +20,9 @@ model-visible catalog contains exactly that harness version. Commands run with
 workspace write permissions and network disabled; a read-only task must preserve
 the fixture even though its sandbox permits writes. Authentication is reused;
 credentials and global settings are not copied or modified.
+Project trust is supplied through an invocation-only configuration table so the
+CLI does not persist disposable fixture entries. Configured MCP servers are
+disabled for the comparison, and host configuration/guidance drift stops the run.
 
 ## Acceptance and human review
 

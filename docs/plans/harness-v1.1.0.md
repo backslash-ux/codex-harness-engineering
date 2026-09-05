@@ -70,4 +70,18 @@ patch rather than recommending the vulnerable baseline.
   The reviewer reran original reproductions and nine focused CI tests and found
   no remaining blocker in the bounded write-boundary/CI review. This is not agent
   evaluation or release acceptance.
-- Next: development-only evaluations, portable wording, and release candidate.
+- Candidate: version 1.1.0 and release checklist prepared. All 46 initial tests
+  passed locally on Python 3.10 and 3.13; compilation, Ruff, distribution and
+  installed OpenAI skill/plugin validators passed. Two release archive builds
+  produced identical SHA-256 hashes.
+- Live comparison started. Initial CLI/model incompatibility prevented model
+  processing; the failed attempt was retained. An already installed compatible
+  bundled CLI is frozen for processed trials, with one extra attempt consumed.
+  Added native skill-root alias handling and invocation-only fixture trust.
+  Two incidental CLI-created trust entries were removed without changing other
+  configuration content. First baseline/candidate alignment pair passed.
+- Provider update/restoration payloads and current policy snapshot prepared
+  outside Git. Main remains unprotected; no provider mutation, push, publication,
+  or installation has occurred.
+- Next: complete remaining agent trials and rubric review, then report evidence
+  and obtain the distinct provider/push/merge/publication authorizations.

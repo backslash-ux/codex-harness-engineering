@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import signal
 import stat
 import subprocess
@@ -199,19 +200,23 @@ def overrides(manifest):
         'shell_environment_policy.set.PYTHONDONTWRITEBYTECODE="1"',
     ]
     for name in manifest.get("disabled_mcp", []):
-        values.extend(["-c", "mcp_servers." + json.dumps(name) + ".enabled=false"])
+        if not re.fullmatch(r"[A-Za-z0-9_-]+", name):
+            raise ValueError("evaluation requires simple MCP configuration identifiers")
+        values.extend(["-c", "mcp_servers." + name + ".enabled=false"])
     return values
 
 
 def preflight(root, skill, manifest):
     result = command(
         [
-            "codex",
+            manifest.get("codex_binary", "codex"),
             "-C",
             str(root),
             "-m",
             manifest["model"],
             *overrides(manifest),
+            "-c",
+            "projects={" + json.dumps(str(root)) + '={trust_level="trusted"}}',
             "debug",
             "prompt-input",
             "Skill catalog preflight.",
@@ -225,7 +230,16 @@ def preflight(root, skill, manifest):
         text,
         re.MULTILINE,
     )
-    resolved = {str(Path(path).resolve()) for path in paths}
+    aliases = dict(re.findall(r"^- `(r\d+)` = `([^`]+)`", text, re.MULTILINE))
+    expanded = []
+    for path in paths:
+        first, separator, rest = path.partition("/")
+        expanded.append(
+            Path(aliases[first]) / rest
+            if separator and first in aliases
+            else Path(path)
+        )
+    resolved = {str(path.resolve()) for path in expanded}
     if resolved != {str((skill / "SKILL.md").resolve())} or len(paths) != 1:
         raise ValueError(
             f"catalog preflight must show exactly the selected skill; observed {len(paths)} entries"
@@ -392,12 +406,14 @@ def trial(output, manifest, case, variant, attempt):
         write_json(directory / "result.json", result)
         return result
     argv = [
-        "codex",
+        manifest.get("codex_binary", "codex"),
         "-a",
         "never",
         "-m",
         manifest["model"],
         *overrides(manifest),
+        "-c",
+        "projects={" + json.dumps(str(root)) + '={trust_level="trusted"}}',
         "exec",
         "--ephemeral",
         "--sandbox",
@@ -462,6 +478,11 @@ def main():
     parser.add_argument("--candidate-ref", default="HEAD")
     parser.add_argument("--model", required=True)
     parser.add_argument("--effort", required=True)
+    parser.add_argument(
+        "--codex-bin",
+        default="codex",
+        help="CLI executable to freeze for both variants.",
+    )
     parser.add_argument("--disable-skill", action="append", default=[])
     parser.add_argument("--prepare-only", action="store_true")
     parser.add_argument("--retry", metavar="CASE:VARIANT")
@@ -483,7 +504,10 @@ def main():
         if (
             manifest["model"] != args.model
             or manifest["effort"] != args.effort
-            or manifest["cli"] != command(["codex", "--version"]).stdout.strip()
+            or manifest["cli"]
+            != command(
+                [manifest.get("codex_binary", "codex"), "--version"]
+            ).stdout.strip()
         ):
             parser.error("resumed evaluation must retain model, effort and CLI")
         if (
@@ -498,7 +522,8 @@ def main():
         manifest = {
             "model": args.model,
             "effort": args.effort,
-            "cli": command(["codex", "--version"]).stdout.strip(),
+            "codex_binary": shutil.which(args.codex_bin) or args.codex_bin,
+            "cli": command([args.codex_bin, "--version"]).stdout.strip(),
             "disabled_skills": args.disable_skill,
             "disabled_mcp": configured_mcp(),
             "host_snapshot": host_snapshot(),
