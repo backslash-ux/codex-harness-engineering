@@ -60,4 +60,9 @@ patch rather than recommending the vulnerable baseline.
   discovery, provenance, and unrelated structural tests. The existing framework
   checks still pass. CI metadata extraction supports a bounded GitHub subset;
   unsupported workflow syntax cannot establish enforcement.
-- Next: common guidance resolver and profile declarations.
+- Guidance: eight focused tests and original framework tests pass. Read-only
+  commands share override/scope/fallback resolution and concept checks; explicit
+  profile declarations take precedence and conflicts are surfaced. Alternate
+  Codex home evidence remains separate. CLI regression snapshots preserve bytes,
+  modes, and Git status.
+- Next: development-only evaluations, portable wording, and release candidate.

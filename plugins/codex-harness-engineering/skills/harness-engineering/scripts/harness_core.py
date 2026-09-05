@@ -10,6 +10,7 @@ from collections.abc import Iterable
 from pathlib import Path
 
 import command_evidence
+import guidance
 
 PROFILES = (
     "web-application",
@@ -260,7 +261,9 @@ def package_invocation(manager: str, script: str) -> str:
 
 
 def discover_commands(
-    root: Path, files: list[Path] | None = None
+    root: Path,
+    files: list[Path] | None = None,
+    guidance_sources: list[Path] | None = None,
 ) -> list[dict[str, object]]:
     files = files if files is not None else walk_files(root)
     commands: list[dict[str, object]] = []
@@ -324,6 +327,13 @@ def discover_commands(
         if path.name
         in {"AGENTS.md", "AGENTS.override.md", "README.md", "CONTRIBUTING.md"}
     ]
+    if guidance_sources is not None:
+        linked, _, _ = local_links(guidance_sources, root)
+        docs = list(
+            dict.fromkeys(
+                guidance_sources + [p for p in linked if p.suffix in {".md", ".mdx"}]
+            )
+        )
     runs = [
         run
         for path in ci_files(files, root)
@@ -403,6 +413,7 @@ def local_links(
                 for child in sorted(candidate.glob("*")):
                     if (
                         child.is_file()
+                        and child.resolve().is_relative_to(root_resolved)
                         and child.suffix.lower() in {".md", ".mdx"}
                         and child.resolve() != source_resolved
                         and child not in resolved
@@ -470,7 +481,9 @@ def command_is_ci_enforced(
     return command_evidence.is_enforced(command)
 
 
-def detect_profile(root: Path) -> tuple[str | None, list[str]]:
+def detect_profile(
+    root: Path, guidance_text: str | None = None
+) -> tuple[str | None, list[str]]:
     package: dict = {}
     package_path = root / "package.json"
     if package_path.exists():
@@ -557,24 +570,33 @@ def detect_profile(root: Path) -> tuple[str | None, list[str]]:
         )
     ):
         capabilities.append("deployable-runtime")
-    guidance = read_text(root / "AGENTS.md").lower()
+    guidance_text = (
+        read_text(root / "AGENTS.md") if guidance_text is None else guidance_text
+    )
+    guidance_lower = guidance_text.lower()
     if re.search(
-        r"\b(pii|personal data|sensitive data|rls|tenant isolation)\b", guidance
+        r"\b(pii|personal data|sensitive data|rls|tenant isolation)\b", guidance_lower
     ):
         capabilities.append("sensitive-data")
-    if profile is None:
-        profile = next(
-            (
-                candidate
-                for candidate in PROFILES
-                if re.search(rf"`?{re.escape(candidate)}`?", guidance)
-            ),
-            None,
-        )
+    declared = guidance.declared_profiles(guidance_text, PROFILES)
+    if declared:
+        profile = declared[0] if len(declared) == 1 else None
     for capability in CAPABILITIES:
-        if re.search(rf"`?{re.escape(capability)}`?", guidance):
+        if re.search(rf"`?{re.escape(capability)}`?", guidance_lower):
             capabilities.append(capability)
     return profile, list(dict.fromkeys(capabilities))
+
+
+def profile_diagnostics(root: Path, text: str) -> list[str]:
+    declared = guidance.declared_profiles(text, PROFILES)
+    if len(declared) > 1:
+        return ["Conflicting primary profiles: " + ", ".join(declared)]
+    inferred, _ = detect_profile(root, "")
+    if declared and inferred not in {None, "library-or-cli", declared[0]}:
+        return [
+            f"Declared profile {declared[0]} differs from concrete detected signals ({inferred}); declaration preserved."
+        ]
+    return []
 
 
 def parse_key_value(

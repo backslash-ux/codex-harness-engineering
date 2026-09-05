@@ -7,6 +7,7 @@ import argparse
 import re
 from pathlib import Path
 
+import guidance
 import harness_core as core
 
 TOKEN_RE = re.compile(r"\{\{([A-Z0-9_]+)\}\}")
@@ -77,6 +78,9 @@ def main() -> int:
     parser.add_argument("--success-condition")
     parser.add_argument("--profile", choices=core.PROFILES)
     parser.add_argument(
+        "--fallback-guidance", action="append", default=[], metavar="FILENAME"
+    )
+    parser.add_argument(
         "--capability",
         action="append",
         default=[],
@@ -128,16 +132,14 @@ def main() -> int:
     if not args.include_project_brief and any(brief_values):
         parser.error("product brief values require --include-project-brief")
 
-    existing_agents = list(root.rglob("AGENTS.md"))
-    intended = [root / "AGENTS.md"]
-    if args.tier in {"growing", "large"}:
-        intended.extend(
-            [root / "docs" / "architecture.md", root / "docs" / "quality.md"]
-        )
-    if args.tier == "large":
-        intended.append(root / "docs" / "PLANS.md")
-    if args.include_project_brief:
-        intended.append(root / "docs" / "project-brief.md")
+    try:
+        names = guidance.filenames(args.fallback_guidance)
+    except ValueError as error:
+        parser.error(str(error))
+    existing_agents = [path for name in names for path in root.rglob(name)]
+    competing = [path for path in existing_agents if path.name != "AGENTS.md"]
+    if competing:
+        parser.error("override/fallback guidance exists; use upgrade mode instead")
 
     # An identical prior initialization is allowed to reach the idempotency check.
     if existing_agents and root / "AGENTS.md" not in existing_agents:

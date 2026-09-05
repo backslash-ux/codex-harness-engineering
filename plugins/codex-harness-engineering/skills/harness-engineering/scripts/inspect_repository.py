@@ -9,6 +9,7 @@ import re
 from collections.abc import Iterable
 from pathlib import Path
 
+import guidance
 import harness_core as core
 
 EXCLUDED_DIRS = {
@@ -114,7 +115,9 @@ def command_is_ci_enforced(command: dict[str, str], ci_blocks: list[str]) -> boo
     return core.command_is_ci_enforced(command, ci_blocks)
 
 
-def classify(root: Path, files: list[Path], mode: str) -> dict:
+def classify(
+    root: Path, files: list[Path], mode: str, scope: str = ".", fallbacks=()
+) -> dict:
     names = [
         "Context and repository knowledge",
         "Architecture and enforceable invariants",
@@ -125,10 +128,11 @@ def classify(root: Path, files: list[Path], mode: str) -> dict:
         "Maintenance and entropy control",
     ]
     dimensions = {name: {"level": "absent", "evidence": []} for name in names}
-    agents = [p for p in files if p.name == "AGENTS.md"]
+    resolution = guidance.resolve(root, scope, fallbacks)
+    agents = [root / path for path in resolution["selected_sources"]]
     linked, broken = local_links(agents, root)
     candidate_docs = list(dict.fromkeys(agents + linked))
-    commands = discover_commands(root, files)
+    commands = core.discover_commands(root, files, agents)
     workflows = ci_files(files, root)
     ci_blocks = core.executable_ci_blocks(workflows)
     all_guidance = "\n".join(read_text(path) for path in candidate_docs)
@@ -396,16 +400,10 @@ def classify(root: Path, files: list[Path], mode: str) -> dict:
             f"{command['command']} is {'invoked by CI' if level == 'enforced' else 'runnable'}",
         )
 
-    global_agents = Path.home() / ".codex" / "AGENTS.md"
-    inherited = []
-    if (
-        global_agents.exists()
-        and global_agents.resolve() != (root / "AGENTS.md").resolve()
-    ):
-        inherited.append(
-            "`~/.codex/AGENTS.md` supplies personal safeguards; it does not raise "
-            "portable repository-local maturity"
-        )
+    inherited = [
+        f"`{path}` supplies inherited guidance; its presence does not raise portable repository maturity."
+        for path in resolution["inherited_sources"]
+    ]
 
     garden_findings: list[str] = []
     if mode == "garden":
@@ -482,6 +480,8 @@ def classify(root: Path, files: list[Path], mode: str) -> dict:
     return {
         "root": str(root),
         "mode": mode,
+        "guidance_resolution": guidance.public(resolution),
+        "profile_diagnostics": core.profile_diagnostics(root, resolution["text"]),
         "git_status": git_status(root),
         "repository_local": {
             "agent_guidance": [rel(p, root) for p in agents],
@@ -526,6 +526,13 @@ def markdown(report: dict) -> str:
     if not inherited:
         lines.append("- None observed")
     lines.extend(["", "## Independent maturity dimensions", ""])
+    lines.extend(
+        f"- Discovery limitation: {item}"
+        for item in report["guidance_resolution"]["limitations"]
+    )
+    lines.extend(
+        f"- Profile diagnostic: {item}" for item in report["profile_diagnostics"]
+    )
     for name, entry in report["dimensions"].items():
         lines.append(f"### {name} — {entry['level'].title()}")
         lines.append("")
@@ -564,11 +571,17 @@ def main() -> int:
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--mode", choices=("audit", "garden"), default="audit")
     parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
+    guidance.add_arguments(parser)
     args = parser.parse_args()
     root = args.root.expanduser().resolve()
     if not root.is_dir():
         parser.error(f"repository does not exist: {root}")
-    report = classify(root, walk_files(root), args.mode)
+    try:
+        report = classify(
+            root, walk_files(root), args.mode, args.scope, args.fallback_guidance
+        )
+    except (ValueError, OSError) as error:
+        parser.error(str(error))
     if args.format == "json":
         print(json.dumps(report, indent=2, sort_keys=True))
     else:
