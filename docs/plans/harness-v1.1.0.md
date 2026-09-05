@@ -1,6 +1,8 @@
 # Harness Engineering v1.1.0
 
-Status: active. Baseline: `5fc35fe`. One combined release with independently
+Status: implementation and verification complete; release execution authorized.
+Publication and installation are established by external readbacks, not this file.
+Baseline: `5fc35fe`. One combined release with independently
 reviewable commits. Preserve Python 3.10+, no runtime dependencies, advisory
 alignment, existing CLI flags/exit conventions/JSON fields, and seven dimensions.
 
@@ -96,5 +98,19 @@ patch rather than recommending the vulnerable baseline.
   enumeration order, and cannot count a failed infrastructure run as a completed
   comparison. Two focused regression tests added. All 50 tests pass locally on
   Python 3.10 and 3.13; Ruff and distribution validation also pass.
-- Next: complete remaining agent trials and rubric review, then report evidence
-  and obtain the distinct provider/push/merge/publication authorizations.
+- Release completion authorized: the user explicitly authorized the remaining
+  five pairs under a newly frozen configuration with the split disclosed, push,
+  PR/merge, the agreed provider policy, immutable v1.1.0 publication, and updating
+  the named installed plugin. No additional routine confirmation is required.
+- Resumed remaining trials; original results and infrastructure failure retained.
+  Next: finish rubric review and final checks, push/protect/verify/merge, publish,
+  then repin the named Git marketplace to v1.1.0 and verify the installed content.
+- Release acceptance: all twelve candidate scenarios and baseline pairs completed
+  successfully; all twelve pairs were manually reviewed by Codex. There were 25
+  recorded attempts: 24 processed trials plus one retained pre-model CLI failure.
+  Seven pairs used the original comparison configuration and five used the newly
+  frozen configuration explicitly authorized by the user. No aggregate controlled
+  performance claim is made. No candidate failure was waived.
+- Release skill content remains identical to the evaluated candidate.
+  GitHub CI, policy, release, checksum, and installation results are recorded by
+  their direct provider/local readbacks during the authorized release flow.
