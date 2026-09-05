@@ -9,6 +9,7 @@ import re
 from collections.abc import Iterable
 from pathlib import Path
 
+import guidance
 import harness_core as core
 
 EXCLUDED_DIRS = {
@@ -114,7 +115,9 @@ def command_is_ci_enforced(command: dict[str, str], ci_blocks: list[str]) -> boo
     return core.command_is_ci_enforced(command, ci_blocks)
 
 
-def classify(root: Path, files: list[Path], mode: str) -> dict:
+def classify(
+    root: Path, files: list[Path], mode: str, scope: str = ".", fallbacks=()
+) -> dict:
     names = [
         "Context and repository knowledge",
         "Architecture and enforceable invariants",
@@ -125,10 +128,11 @@ def classify(root: Path, files: list[Path], mode: str) -> dict:
         "Maintenance and entropy control",
     ]
     dimensions = {name: {"level": "absent", "evidence": []} for name in names}
-    agents = [p for p in files if p.name == "AGENTS.md"]
+    resolution = guidance.resolve(root, scope, fallbacks)
+    agents = [root / path for path in resolution["selected_sources"]]
     linked, broken = local_links(agents, root)
     candidate_docs = list(dict.fromkeys(agents + linked))
-    commands = discover_commands(root, files)
+    commands = core.discover_commands(root, files, agents)
     workflows = ci_files(files, root)
     ci_blocks = core.executable_ci_blocks(workflows)
     all_guidance = "\n".join(read_text(path) for path in candidate_docs)
@@ -246,14 +250,9 @@ def classify(root: Path, files: list[Path], mode: str) -> dict:
         )
         and re.search(r"\.(test|spec)\.", p.name, re.IGNORECASE)
     ]
-    ci_test_commands = [
-        c
-        for c in check_commands
-        if re.search(r"(^|:)test($|:)|check", c["name"], re.IGNORECASE)
-        and command_is_ci_enforced(c, ci_blocks)
-    ]
     for path in boundary_tests:
-        level = "enforced" if ci_test_commands else "executable"
+        # A generic test command does not prove this particular file is reached.
+        level = "executable"
         add_evidence(
             dimensions,
             names[1],
@@ -401,16 +400,10 @@ def classify(root: Path, files: list[Path], mode: str) -> dict:
             f"{command['command']} is {'invoked by CI' if level == 'enforced' else 'runnable'}",
         )
 
-    global_agents = Path.home() / ".codex" / "AGENTS.md"
-    inherited = []
-    if (
-        global_agents.exists()
-        and global_agents.resolve() != (root / "AGENTS.md").resolve()
-    ):
-        inherited.append(
-            "`~/.codex/AGENTS.md` supplies personal safeguards; it does not raise "
-            "portable repository-local maturity"
-        )
+    inherited = [
+        f"`{path}` supplies inherited guidance; its presence does not raise portable repository maturity."
+        for path in resolution["inherited_sources"]
+    ]
 
     garden_findings: list[str] = []
     if mode == "garden":
@@ -487,12 +480,15 @@ def classify(root: Path, files: list[Path], mode: str) -> dict:
     return {
         "root": str(root),
         "mode": mode,
+        "guidance_resolution": guidance.public(resolution),
+        "profile_diagnostics": core.profile_diagnostics(root, resolution["text"]),
         "git_status": git_status(root),
         "repository_local": {
             "agent_guidance": [rel(p, root) for p in agents],
             "linked_sources": [rel(p, root) for p in linked],
             "ci_files": [rel(p, root) for p in workflows],
             "discovered_commands": [c["command"] for c in commands],
+            "command_evidence": commands,
         },
         "inherited_global_safeguards": inherited,
         "dimensions": dimensions,
@@ -520,16 +516,28 @@ def markdown(report: dict) -> str:
     ]
     local = report["repository_local"]
     for key, values in local.items():
+        if key == "command_evidence":
+            continue
         label = key.replace("_", " ").title()
         lines.append(
             f"- {label}: " + (", ".join(f"`{v}`" for v in values) or "None found")
         )
+    for command in local["command_evidence"]:
+        sources = ", ".join(f"{s['source']}:{s['line']}" for s in command["sources"])
+        lines.append(f"- Command provenance: `{command['canonical']}` — {sources}")
     lines.extend(["", "## Inherited global safeguards", ""])
     inherited = report["inherited_global_safeguards"]
     lines.extend(f"- {item}" for item in inherited)
     if not inherited:
         lines.append("- None observed")
     lines.extend(["", "## Independent maturity dimensions", ""])
+    lines.extend(
+        f"- Discovery limitation: {item}"
+        for item in report["guidance_resolution"]["limitations"]
+    )
+    lines.extend(
+        f"- Profile diagnostic: {item}" for item in report["profile_diagnostics"]
+    )
     for name, entry in report["dimensions"].items():
         lines.append(f"### {name} — {entry['level'].title()}")
         lines.append("")
@@ -539,6 +547,9 @@ def markdown(report: dict) -> str:
             lines.append("- No repository-local evidence found.")
         lines.append("")
     lines.extend(["## Remote state", ""])
+    lines.append(
+        "CI enforcement describes configured failure-propagating invocations, not required merge checks or a live CI result."
+    )
     lines.extend(
         f"- {key.replace('_', ' ').title()}: {value}"
         for key, value in report["remote_state"].items()
@@ -565,11 +576,17 @@ def main() -> int:
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--mode", choices=("audit", "garden"), default="audit")
     parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
+    guidance.add_arguments(parser)
     args = parser.parse_args()
     root = args.root.expanduser().resolve()
     if not root.is_dir():
         parser.error(f"repository does not exist: {root}")
-    report = classify(root, walk_files(root), args.mode)
+    try:
+        report = classify(
+            root, walk_files(root), args.mode, args.scope, args.fallback_guidance
+        )
+    except (ValueError, OSError) as error:
+        parser.error(str(error))
     if args.format == "json":
         print(json.dumps(report, indent=2, sort_keys=True))
     else:

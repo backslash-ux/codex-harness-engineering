@@ -4,6 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import os
+import stat
+import tempfile
 from pathlib import Path
 
 START = "<!-- harness-engineering:global-contract:start -->"
@@ -28,6 +31,8 @@ def inspect(current: str, expected: str) -> str:
     if starts == 0:
         return "absent"
     begin = current.index(START)
+    if current.index(END) < begin:
+        return "malformed"
     finish = current.index(END, begin) + len(END)
     managed = current[begin:finish].strip()
     return "installed" if managed == expected else "divergent"
@@ -43,9 +48,16 @@ def install(target: Path, expected: str) -> str:
     target.parent.mkdir(parents=True, exist_ok=True)
     prefix = current.rstrip()
     updated = (prefix + "\n\n" if prefix else "") + expected + "\n"
-    temporary = target.with_name(target.name + ".harness-engineering.tmp")
-    temporary.write_text(updated, encoding="utf-8")
-    temporary.replace(target)
+    mode = stat.S_IMODE(target.stat().st_mode) if target.exists() else 0o600
+    descriptor, name = tempfile.mkstemp(prefix=f".{target.name}.", dir=target.parent)
+    temporary = Path(name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            os.fchmod(stream.fileno(), mode)
+            stream.write(updated)
+        temporary.replace(target)
+    finally:
+        temporary.unlink(missing_ok=True)
     return "installed"
 
 

@@ -8,7 +8,7 @@ result into a badge.
 | Absent | No repository-local evidence was found. |
 | Documented | Versioned repository guidance describes the behavior. |
 | Executable | A runnable command, test, script, or directly inspectable runtime surface implements the behavior. |
-| Enforced | Repository CI invokes the relevant executable check or a verified remote policy enforces it. |
+| Enforced | A supported CI invocation propagates the relevant check's failure, or a directly verified remote policy enforces it. Configured CI is distinct from a live result and a required merge gate. |
 
 Inherited personal guidance can reduce operator risk but does not raise a
 repository's portable maturity level. Report it in a separate
@@ -57,7 +57,8 @@ plan handling, repeated-failure capture, and CI-backed maintenance rules.
 
 ## Recommendation rule
 
-Recommend exactly one improvement: the smallest change that closes the first
-material gap affecting current work. Prefer guidance before mechanics. Recommend
+Default to one improvement for routine alignment: the smallest change closing
+the first material gap. For an explicitly comprehensive audit, report all
+demonstrated material gaps with impact/effort priorities. Prefer guidance before mechanics. Recommend
 a mechanical check only when the rule is objective, repeatedly violated, and
 cheap to run. If no current gap justifies change, report `No change needed`.

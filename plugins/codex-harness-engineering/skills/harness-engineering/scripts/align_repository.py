@@ -5,19 +5,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 from pathlib import Path
 
+import guidance
 import harness_core as core
 
-REQUIRED_CONCEPTS = {
-    "project profile": r"project (?:profile|shape)|primary profile",
-    "authority map": r"authority (?:map|by domain)|source(?:s)? of truth",
-    "canonical commands": r"canonical commands|development and validation|setup commands",
-    "evidence boundaries": r"evidence boundar|locally verified|local proof",
-    "human gates": r"human gate|human approval|before merge|production.*approval",
-    "done condition": r"done condition|done when|treat work as done",
-}
+REQUIRED_CONCEPTS = guidance.CONCEPTS
 
 
 def first_recommendation(missing: list[str], root: Path) -> str:
@@ -28,42 +21,43 @@ def first_recommendation(missing: list[str], root: Path) -> str:
     return "No change needed"
 
 
-def assess(root: Path) -> dict:
+def assess(root: Path, scope: str = ".", fallbacks=()) -> dict:
     root = root.expanduser().resolve()
     if not root.is_dir():
         raise ValueError(f"repository does not exist: {root}")
-    profile, capabilities = core.detect_profile(root)
+    resolution = guidance.resolve(root, scope, fallbacks)
+    agents_text = resolution["text"]
+    sources = [root / path for path in resolution["selected_sources"]]
+    profile, capabilities = core.detect_profile(root, agents_text)
+    declared = guidance.declared_profiles(agents_text, core.PROFILES)
+    profile_diagnostics = core.profile_diagnostics(root, agents_text)
     exact_git_root = core.is_git_root(root)
     software = core.is_software_repository(root) or profile is not None
-    agents = root / "AGENTS.md"
-    agents_text = core.read_text(agents)
     files = core.walk_files(root) if exact_git_root else []
-    commands = core.discover_commands(root, files) if exact_git_root else []
+    commands = core.discover_commands(root, files, sources) if exact_git_root else []
     linked: list[Path] = []
     broken: list[str] = []
     external: list[str] = []
-    if agents.exists():
-        linked, broken, external = core.local_links([agents], root)
+    if sources:
+        linked, broken, external = core.local_links(sources, root)
 
     if not exact_git_root:
         status = "out-of-scope"
         missing = ["exact Git repository root"]
-    elif not software and core.source_count(root) == 0 and not agents.exists():
+    elif not software and core.source_count(root) == 0 and not sources:
         status = "needs-initialize"
         missing = ["root AGENTS.md", "project profile", "authority map"]
+    elif len(declared) > 1:
+        status = "needs-input"
+        missing = ["unambiguous primary project profile"]
     elif not software:
         status = "out-of-scope"
         missing = ["software repository markers"]
-    elif not agents.exists():
+    elif not sources:
         status = "needs-upgrade"
         missing = list(REQUIRED_CONCEPTS)
     else:
-        lower = agents_text.lower()
-        missing = [
-            concept
-            for concept, pattern in REQUIRED_CONCEPTS.items()
-            if not re.search(pattern, lower, re.IGNORECASE)
-        ]
+        missing = guidance.missing_concepts(agents_text)
         if core.PLACEHOLDER_RE.search(agents_text):
             status = "needs-input"
         elif missing or broken:
@@ -80,15 +74,30 @@ def assess(root: Path) -> dict:
         "profile": profile,
         "capabilities": capabilities,
         "authority": {
-            "local_guidance": "AGENTS.md" if agents.exists() else None,
+            "local_guidance": resolution["selected_sources"][0] if sources else None,
             "linked_local_sources": [core.rel(path, root) for path in linked],
             "explicit_external_sources": external,
             "external_source_state": "Unverified" if external else "Not applicable",
         },
         "discovered_commands": [item["canonical"] for item in commands],
+        "command_evidence": commands,
+        "guidance_resolution": guidance.public(resolution),
+        "profile_diagnostics": profile_diagnostics,
         "missing_contracts": missing,
         "broken_links": broken,
-        "smallest_recommended_improvement": first_recommendation(missing, root),
+        "smallest_recommended_improvement": (
+            "Resolve conflicting primary profile declarations."
+            if len(declared) > 1
+            else f"Add or link one concise repository-local `{missing[0]}` contract."
+            if sources and missing
+            else f"Repair the first broken repository-guidance link: {broken[0]}."
+            if broken
+            else "Resolve the unresolved authority or template marker."
+            if status == "needs-input"
+            else "No change needed"
+            if sources
+            else first_recommendation(missing, root)
+        ),
         "next_mode": {
             "aligned": None,
             "needs-initialize": "initialize",
@@ -144,6 +153,13 @@ def markdown(report: dict) -> str:
     ]
     lines.extend(f"- {item}" for item in report["missing_contracts"])
     lines.extend(f"- Broken link: {item}" for item in report["broken_links"])
+    lines.extend(
+        f"- Profile diagnostic: {item}" for item in report["profile_diagnostics"]
+    )
+    lines.extend(
+        f"- Discovery limitation: {item}"
+        for item in report["guidance_resolution"]["limitations"]
+    )
     if not report["missing_contracts"] and not report["broken_links"]:
         lines.append("- None")
     lines.extend(
@@ -166,10 +182,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
+    guidance.add_arguments(parser)
     args = parser.parse_args()
     try:
-        report = assess(args.root)
-    except ValueError as error:
+        report = assess(args.root, args.scope, args.fallback_guidance)
+    except (ValueError, OSError) as error:
         parser.error(str(error))
     if args.format == "json":
         print(json.dumps(report, indent=2, sort_keys=True))

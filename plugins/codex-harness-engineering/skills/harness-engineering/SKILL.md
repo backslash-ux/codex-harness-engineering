@@ -88,6 +88,13 @@ Re-align on first entry, missing root guidance, or a material change to project
 shape, authorities, tooling, architecture, release flow, or trust boundaries.
 Do not add scheduled scans or a central portfolio registry.
 
+The read-only commands accept `--scope <relative-directory>` and repeatable
+`--fallback-guidance <filename>` arguments. Default scope is the repository root.
+Use the effective override, AGENTS.md, or explicitly supplied fallback chain.
+Supply host-configured fallback names explicitly; the tools do not emulate the
+full Codex configuration loader or host context truncation. Explicit primary
+profiles take precedence over generic inference; surface conflicting declarations.
+
 ## Audit or garden
 
 Capture `git status --short --branch`, then run:
@@ -109,6 +116,12 @@ test-result directories are not executable feedback. A check is `enforced`
 only when CI executes the relevant command. Treat remote policies, deployments,
 and provider state as `Unverified` unless inspected directly. Re-run Git status
 and confirm read-only modes made no changes.
+
+Command evidence includes source locations, working directories, and whether a
+supported CI invocation propagates failure. Unsupported shell/workflow metadata
+remains uncertain. Configured CI enforcement is distinct from a live successful
+CI run and required merge checks. Do not execute discovered commands merely
+because the scanner lists them; verify checks only within the authorized task.
 
 ## Initialize
 
@@ -187,5 +200,11 @@ communication. Never equate local, browser, Preview, Production, or provider
 evidence.
 
 Finish with the selected mode, outcome, repository-local evidence, inherited
-global safeguards, validation performed, one smallest improvement or
-`No change needed`, and remaining unverified state.
+global safeguards, validation performed, and remaining unverified state. Default
+to one smallest improvement or `No change needed` for routine alignment. For an
+explicit comprehensive audit, report every demonstrated material finding and
+prioritize recommendations by impact and effort without inventing extra work.
+
+Written approval rules, CLI safety checks, host permissions, and provider merge
+requirements establish different guarantees. Do not infer one from another or
+modify host settings or existing user guidance during a repository upgrade.

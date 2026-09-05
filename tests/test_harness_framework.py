@@ -185,7 +185,7 @@ class HarnessFrameworkTests(unittest.TestCase):
         workflow = self.fixture.root / ".github" / "workflows" / "ci.yml"
         workflow.parent.mkdir(parents=True)
         workflow.write_text(
-            "jobs:\n  test:\n    steps:\n      # npm run test\n      - run: echo skipped\n",
+            "jobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      # npm run test\n      - run: echo skipped\n",
             encoding="utf-8",
         )
         self.fixture.commit_all()
@@ -193,7 +193,7 @@ class HarnessFrameworkTests(unittest.TestCase):
         first = self.inspect()["dimensions"]["Verification routing"]
         self.assertEqual(first["level"], "executable")
         workflow.write_text(
-            "jobs:\n  test:\n    steps:\n      - run: npm run test\n",
+            "jobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm run test\n",
             encoding="utf-8",
         )
         second = self.inspect()["dimensions"]["Verification routing"]

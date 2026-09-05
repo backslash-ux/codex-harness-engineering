@@ -42,9 +42,9 @@ Add only the capabilities justified by real scale or repeated friction:
 - direct runtime feedback for critical journeys;
 - recovery checkpoints and debt/entropy maintenance.
 
-Nested `AGENTS.md`, custom linters, observability, and CI checks are conditional,
-not status symbols. KaneoClaw is a reference for demonstrated patterns, not a
-template to copy.
+Nested guidance, custom linters, observability, and CI checks are conditional.
+Use demonstrated repository needs to justify them; do not copy another project's
+structure without an applicable requirement.
 
 ## Lowest useful layer
 

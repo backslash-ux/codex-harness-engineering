@@ -35,7 +35,7 @@ class DistributionTests(unittest.TestCase):
         entry = marketplace["plugins"][0]
         self.assertEqual(manifest["name"], entry["name"])
         self.assertEqual(manifest["name"], "codex-harness-engineering")
-        self.assertEqual(manifest["version"], "1.0.0")
+        self.assertEqual(manifest["version"], "1.1.0")
         self.assertEqual(marketplace["name"], "backslash-ux")
 
     def test_release_archive_is_deterministic_and_minimal(self) -> None:

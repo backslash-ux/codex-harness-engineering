@@ -40,13 +40,16 @@ linked or named; mark inaccessible sources `Unverified`.
   authentication, migration, or release risk.
 - Prepare evidence and remaining risks, then stop for human merge approval.
 - Treat incomplete harness alignment as advisory and report at most one material
-  improvement without displacing the requested task.
+  improvement for routine alignment without displacing the requested task.
+  An explicitly comprehensive audit may report all demonstrated material gaps.
 
 ## Evidence boundaries
 
 Label results as implemented, locally verified, browser verified, Preview
 verified, Production verified, provider verified, or unverified. Never infer
-deployment or provider state from local checks or stored artifacts.
+deployment or provider state from local checks or stored artifacts. Written
+approval rules, CLI checks, host permissions, and provider merge requirements
+establish different guarantees; verify each independently.
 
 ## Human gates
 
