@@ -40,7 +40,7 @@ Ask Codex:
 ```text
 Use $skill-installer to install harness-engineering from
 backslash-ux/codex-harness-engineering at
-plugins/codex-harness-engineering/skills/harness-engineering, ref v1.0.0.
+plugins/codex-harness-engineering/skills/harness-engineering, ref v1.1.0.
 ```
 
 Start a new Codex task after installation if the skill does not appear
@@ -53,7 +53,7 @@ Add the tagged Git marketplace and install the skills-only plugin:
 ```bash
 codex plugin marketplace add \
   backslash-ux/codex-harness-engineering \
-  --ref v1.0.0
+  --ref v1.1.0
 
 codex plugin add codex-harness-engineering@backslash-ux
 ```
