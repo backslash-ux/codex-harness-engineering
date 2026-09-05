@@ -38,6 +38,28 @@ CONTROL_WORDS = {
     "true",
     "!",
     "function",
+    "alias",
+    "unalias",
+    "shopt",
+    "enable",
+    "builtin",
+    "command",
+    "hash",
+    "declare",
+    "typeset",
+    "local",
+    "readonly",
+    "unset",
+    "read",
+    "mapfile",
+    "let",
+    "ulimit",
+    "umask",
+    "pushd",
+    "popd",
+    "wait",
+    "coproc",
+    "time",
 }
 KEY = re.compile(r"^(\s*)(-\s+)?([A-Za-z0-9_.-]+):(?:\s+(.*))?$")
 
@@ -141,6 +163,10 @@ def workflow_runs(path: Path, root: Path) -> list[dict]:
         else:
             if value.startswith(("&", "*", "!")) or key == "<<":
                 unsupported = True
+            if key in {"defaults", "run", "steps", "jobs", "env"} and value.startswith(
+                ("{", "[")
+            ):
+                unsupported = True
             if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
                 value = value[1:-1]
             nodes[route] = (value, line_number)
@@ -165,11 +191,17 @@ def workflow_runs(path: Path, root: Path) -> list[dict]:
             get(job + ("continue-on-error",)),
             get(step + ("continue-on-error",)),
         ]
+        runner = get(job + ("runs-on",))
+        default_shell = (
+            "bash"
+            if re.fullmatch(r"(?:ubuntu|macos)-[A-Za-z0-9.-]+", runner)
+            else "unknown"
+        )
         shell = get(
             step + ("shell",),
             get(
                 job + ("defaults", "run", "shell"),
-                get(("defaults", "run", "shell"), "bash"),
+                get(("defaults", "run", "shell"), default_shell),
             ),
         )
         working = get(

@@ -516,10 +516,15 @@ def markdown(report: dict) -> str:
     ]
     local = report["repository_local"]
     for key, values in local.items():
+        if key == "command_evidence":
+            continue
         label = key.replace("_", " ").title()
         lines.append(
             f"- {label}: " + (", ".join(f"`{v}`" for v in values) or "None found")
         )
+    for command in local["command_evidence"]:
+        sources = ", ".join(f"{s['source']}:{s['line']}" for s in command["sources"])
+        lines.append(f"- Command provenance: `{command['canonical']}` — {sources}")
     lines.extend(["", "## Inherited global safeguards", ""])
     inherited = report["inherited_global_safeguards"]
     lines.extend(f"- {item}" for item in inherited)

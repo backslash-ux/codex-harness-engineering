@@ -24,10 +24,11 @@ class CommandEvidenceTests(unittest.TestCase):
     def tearDown(self):
         self.fixture.close()
 
-    def check(self, run, job="", step="", defaults=""):
+    def check(self, run, job="", step="", defaults="", runner="ubuntu-latest"):
         self.workflow.write_text(
             defaults
             + "jobs:\n  test:\n"
+            + f"    runs-on: {runner}\n"
             + job
             + "    steps:\n      - name: Tests\n"
             + step
@@ -112,6 +113,48 @@ class CommandEvidenceTests(unittest.TestCase):
         )
         self.check("npm run test")
         self.assertFalse((self.root / "SHOULD_NOT_EXIST").exists())
+
+    def test_inline_metadata_cannot_hide_shell_or_working_directory(self):
+        for defaults in (
+            "defaults: {run: {shell: 'bash {0}'}}\n",
+            "defaults: {run: {working-directory: elsewhere}}\n",
+        ):
+            with self.subTest(defaults=defaults):
+                self.assertFalse(
+                    self.check(
+                        "|\n          npm run test\n          echo complete",
+                        defaults=defaults,
+                    )[0]
+                )
+
+    def test_unknown_and_windows_default_shells_are_unverified(self):
+        for runner in ("windows-latest", "${{ matrix.os }}", "self-hosted", "unknown"):
+            with self.subTest(runner=runner):
+                self.assertFalse(
+                    self.check(
+                        "|\n          npm run test\n          node --version",
+                        runner=runner,
+                    )[0]
+                )
+                self.assertTrue(
+                    self.check(
+                        "npm run test", step="        shell: bash\n", runner=runner
+                    )[0]
+                )
+
+    def test_shell_mutation_is_outside_supported_subset(self):
+        for setup in (
+            "shopt -s expand_aliases\n          alias npm=true",
+            "hash -p /bin/true npm",
+            "builtin eval alias",
+        ):
+            with self.subTest(setup=setup):
+                self.assertFalse(
+                    self.check(
+                        "|\n          " + setup + "\n          npm run test",
+                        step="        shell: bash\n",
+                    )[0]
+                )
 
 
 if __name__ == "__main__":

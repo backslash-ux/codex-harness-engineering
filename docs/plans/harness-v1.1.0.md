@@ -65,4 +65,9 @@ patch rather than recommending the vulnerable baseline.
   profile declarations take precedence and conflicts are surfaced. Alternate
   Codex home evidence remains separate. CLI regression snapshots preserve bytes,
   modes, and Git status.
+- Independent review: three additional CI false positives were reproduced and
+  fixed (flow metadata, default Windows/unknown shells, shell-mutating builtins).
+  The reviewer reran original reproductions and nine focused CI tests and found
+  no remaining blocker in the bounded write-boundary/CI review. This is not agent
+  evaluation or release acceptance.
 - Next: development-only evaluations, portable wording, and release candidate.
