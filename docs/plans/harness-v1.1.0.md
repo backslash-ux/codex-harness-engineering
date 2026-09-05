@@ -55,4 +55,9 @@ patch rather than recommending the vulnerable baseline.
   pass locally. Exclusive output creation, destination preflight, complete no-op
   detection, unique replacement files, permission preservation, and marker-order
   diagnostics implemented.
-- Next: command provenance and conservative CI evidence.
+- Audit evidence: six focused tests pass, including misleading command text,
+  conditions, ignored errors, working-directory mismatches, actual repository
+  discovery, provenance, and unrelated structural tests. The existing framework
+  checks still pass. CI metadata extraction supports a bounded GitHub subset;
+  unsupported workflow syntax cannot establish enforcement.
+- Next: common guidance resolver and profile declarations.

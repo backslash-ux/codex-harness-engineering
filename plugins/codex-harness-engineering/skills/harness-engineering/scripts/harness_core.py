@@ -9,6 +9,8 @@ import subprocess
 from collections.abc import Iterable
 from pathlib import Path
 
+import command_evidence
+
 PROFILES = (
     "web-application",
     "service-or-worker",
@@ -316,7 +318,18 @@ def discover_commands(
                     "canonical": f"./{relative}",
                 }
             )
-    return commands
+    docs = [
+        path
+        for path in files
+        if path.name
+        in {"AGENTS.md", "AGENTS.override.md", "README.md", "CONTRIBUTING.md"}
+    ]
+    runs = [
+        run
+        for path in ci_files(files, root)
+        for run in command_evidence.workflow_runs(path, root)
+    ]
+    return command_evidence.enrich(commands, root, docs, runs)
 
 
 def canonical_command_lines(root: Path) -> list[str]:
@@ -452,8 +465,9 @@ def executable_ci_blocks(paths: Iterable[Path]) -> list[str]:
 def command_is_ci_enforced(
     command: dict[str, object], ci_blocks: Iterable[str]
 ) -> bool:
-    invocations = [str(value) for value in command.get("invocations", [])]
-    return any(invocation in block for block in ci_blocks for invocation in invocations)
+    # Legacy argument retained; bare command strings cannot establish metadata
+    # such as conditions, working directories, or tolerated failures.
+    return command_evidence.is_enforced(command)
 
 
 def detect_profile(root: Path) -> tuple[str | None, list[str]]:

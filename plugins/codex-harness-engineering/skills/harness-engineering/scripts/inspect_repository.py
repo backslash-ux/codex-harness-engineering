@@ -246,14 +246,9 @@ def classify(root: Path, files: list[Path], mode: str) -> dict:
         )
         and re.search(r"\.(test|spec)\.", p.name, re.IGNORECASE)
     ]
-    ci_test_commands = [
-        c
-        for c in check_commands
-        if re.search(r"(^|:)test($|:)|check", c["name"], re.IGNORECASE)
-        and command_is_ci_enforced(c, ci_blocks)
-    ]
     for path in boundary_tests:
-        level = "enforced" if ci_test_commands else "executable"
+        # A generic test command does not prove this particular file is reached.
+        level = "executable"
         add_evidence(
             dimensions,
             names[1],
@@ -493,6 +488,7 @@ def classify(root: Path, files: list[Path], mode: str) -> dict:
             "linked_sources": [rel(p, root) for p in linked],
             "ci_files": [rel(p, root) for p in workflows],
             "discovered_commands": [c["command"] for c in commands],
+            "command_evidence": commands,
         },
         "inherited_global_safeguards": inherited,
         "dimensions": dimensions,
@@ -539,6 +535,9 @@ def markdown(report: dict) -> str:
             lines.append("- No repository-local evidence found.")
         lines.append("")
     lines.extend(["## Remote state", ""])
+    lines.append(
+        "CI enforcement describes configured failure-propagating invocations, not required merge checks or a live CI result."
+    )
     lines.extend(
         f"- {key.replace('_', ' ').title()}: {value}"
         for key, value in report["remote_state"].items()

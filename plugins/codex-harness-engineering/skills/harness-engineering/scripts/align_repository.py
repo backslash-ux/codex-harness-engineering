@@ -86,6 +86,7 @@ def assess(root: Path) -> dict:
             "external_source_state": "Unverified" if external else "Not applicable",
         },
         "discovered_commands": [item["canonical"] for item in commands],
+        "command_evidence": commands,
         "missing_contracts": missing,
         "broken_links": broken,
         "smallest_recommended_improvement": first_recommendation(missing, root),
