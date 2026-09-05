@@ -83,5 +83,18 @@ patch rather than recommending the vulnerable baseline.
 - Provider update/restoration payloads and current policy snapshot prepared
   outside Git. Main remains unprotected; no provider mutation, push, publication,
   or installation has occurred.
+- Final local matrix: 48 tests pass on both Python 3.10 and 3.13; Ruff,
+  compilation, and distribution validation pass. Current skill content matches
+  the frozen candidate and the installed baseline remains unchanged.
+- Seven completed agent pairs pass (14 processed trials plus one retained CLI
+  incompatibility failure). Shared host configuration changed after the audit
+  pair, so the runner correctly halted. Model/effort remained unchanged; the
+  complete tool configuration equivalence is not established. Awaiting the
+  user's choice to disclose an environment split for the remaining five pairs
+  or leave live acceptance incomplete; no further trials run in the meantime.
+- Evaluation summary now selects retries by attempt number, not filesystem
+  enumeration order, and cannot count a failed infrastructure run as a completed
+  comparison. Two focused regression tests added. All 50 tests pass locally on
+  Python 3.10 and 3.13; Ruff and distribution validation also pass.
 - Next: complete remaining agent trials and rubric review, then report evidence
   and obtain the distinct provider/push/merge/publication authorizations.

@@ -471,6 +471,27 @@ def trial(output, manifest, case, variant, attempt):
     return result
 
 
+def assessment(scenarios, results):
+    latest = {
+        (r["case"], r["variant"]): r
+        for r in sorted(results, key=lambda r: r["attempt"])
+    }
+    accepted = all(
+        latest.get((s["id"], "candidate"), {}).get("passed", False) for s in scenarios
+    )
+    complete = all(
+        latest.get((s["id"], variant), {}).get("returncode") == 0
+        for s in scenarios
+        for variant in ("baseline", "candidate")
+    )
+    return {
+        "candidate_deterministic_acceptance": accepted,
+        "comparison_complete": complete,
+        "human_review": "required",
+        "trials": len(results),
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
@@ -570,20 +591,14 @@ def main():
             previous.append(result)
             print(json.dumps(result), flush=True)
     write_json(output / "results.json", previous)
-    latest = {(r["case"], r["variant"]): r for r in previous}
-    accepted = all(
-        latest.get((s["id"], "candidate"), {}).get("passed", False) for s in scenarios
+    summary = assessment(scenarios, previous)
+    print(json.dumps(summary))
+    return (
+        0
+        if summary["candidate_deterministic_acceptance"]
+        and summary["comparison_complete"]
+        else 1
     )
-    print(
-        json.dumps(
-            {
-                "candidate_deterministic_acceptance": accepted,
-                "human_review": "required",
-                "trials": len(previous),
-            }
-        )
-    )
-    return 0 if accepted else 1
 
 
 if __name__ == "__main__":

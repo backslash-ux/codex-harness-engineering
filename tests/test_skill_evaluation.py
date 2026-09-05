@@ -133,6 +133,54 @@ class SkillEvaluationTests(unittest.TestCase):
         )
         self.assertFalse(result["checks"]["no_false_ci_enforcement"])
 
+    def test_infrastructure_failure_does_not_establish_comparison_acceptance(self):
+        records = [
+            {
+                "case": "align",
+                "variant": "baseline",
+                "attempt": 1,
+                "returncode": 1,
+                "passed": False,
+            },
+            {
+                "case": "align",
+                "variant": "candidate",
+                "attempt": 1,
+                "returncode": 0,
+                "passed": True,
+            },
+        ]
+        result = evaluation.assessment([{"id": "align"}], records)
+        self.assertTrue(result["candidate_deterministic_acceptance"])
+        self.assertFalse(result["comparison_complete"])
+
+    def test_latest_attempt_wins_independently_of_file_enumeration_order(self):
+        records = [
+            {
+                "case": "align",
+                "variant": "baseline",
+                "attempt": 2,
+                "returncode": 0,
+                "passed": True,
+            },
+            {
+                "case": "align",
+                "variant": "baseline",
+                "attempt": 1,
+                "returncode": 1,
+                "passed": False,
+            },
+            {
+                "case": "align",
+                "variant": "candidate",
+                "attempt": 1,
+                "returncode": 0,
+                "passed": True,
+            },
+        ]
+        result = evaluation.assessment([{"id": "align"}], records)
+        self.assertTrue(result["comparison_complete"])
+
 
 if __name__ == "__main__":
     unittest.main()
