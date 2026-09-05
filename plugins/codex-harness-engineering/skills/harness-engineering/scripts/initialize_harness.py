@@ -46,6 +46,26 @@ def current_system(root: Path) -> str:
     )
 
 
+def preflight_outputs(root: Path, outputs: dict[Path, str]) -> None:
+    """Check the complete write set, including dangling links, before any write."""
+    for path, content in outputs.items():
+        relative = path.relative_to(root)
+        current = root
+        for part in relative.parts:
+            current = current / part
+            if current.is_symlink():
+                raise ValueError(f"refusing symlink destination or parent: {current}")
+            if current != path and current.exists() and not current.is_dir():
+                raise ValueError(f"destination parent is not a directory: {current}")
+        if not path.resolve().is_relative_to(root.resolve()):
+            raise ValueError(f"destination escapes repository: {path}")
+        if path.exists() and (
+            not path.is_file()
+            or path.read_text(encoding="utf-8", errors="replace") != content
+        ):
+            raise ValueError(f"refusing to overwrite conflicting file: {path}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path.cwd())
@@ -122,19 +142,6 @@ def main() -> int:
     # An identical prior initialization is allowed to reach the idempotency check.
     if existing_agents and root / "AGENTS.md" not in existing_agents:
         parser.error("nested AGENTS.md exists; use upgrade mode instead")
-    conflicts = [path for path in intended if path.exists()]
-    if conflicts:
-        # Render first and accept only exact matches.
-        pass
-    elif core.source_count(root) > 24:
-        parser.error(
-            "repository appears established; use audit or explicitly requested upgrade mode"
-        )
-    elif core.git_status(root).splitlines()[1:]:
-        parser.error(
-            "new repository has uncommitted changes; preserve them and initialize from a "
-            "clean checkout or use explicitly requested upgrade mode"
-        )
 
     assets = Path(__file__).resolve().parent.parent / "assets"
     project_name = root.name.replace("-", " ").replace("_", " ").title()
@@ -207,27 +214,41 @@ def main() -> int:
             },
         )
 
-    conflicting = [
-        path
-        for path, content in outputs.items()
-        if path.exists()
-        and path.read_text(encoding="utf-8", errors="replace") != content
-    ]
-    if conflicting:
-        print("Refusing to overwrite conflicting files:")
-        for path in conflicting:
-            print(f"- {path}")
+    try:
+        preflight_outputs(root, outputs)
+    except (ValueError, OSError) as error:
+        print(error)
         return 2
+    missing = [path for path in outputs if not path.exists()]
+    if missing and core.source_count(root) > 24:
+        parser.error(
+            "repository appears established; use explicitly requested upgrade mode"
+        )
+    if missing and core.git_status(root).splitlines()[1:]:
+        parser.error(
+            "new repository has uncommitted changes; use a clean checkout or upgrade mode"
+        )
 
     created = []
     unchanged = []
-    for path, content in outputs.items():
-        if path.exists():
-            unchanged.append(path)
-            continue
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
-        created.append(path)
+    try:
+        for path, content in outputs.items():
+            if path not in missing:
+                unchanged.append(path)
+                continue
+            preflight_outputs(root, {path: content})
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("x", encoding="utf-8") as stream:
+                created.append(path)
+                stream.write(content)
+    except (ValueError, OSError) as error:
+        print(f"Initialization stopped: {error}")
+        for path in created:
+            print(f"Created (may be incomplete): {path.relative_to(root)}")
+        print(
+            "Existing files were not rolled back; inspect newly created files before retrying."
+        )
+        return 2
 
     print(f"Initialized `{args.tier}` harness at {root}")
     for path in created:
